@@ -16,14 +16,10 @@ import android.widget.Toast;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 
+import br.senai.sc.produto_exercicio.database.ProdutoDAO;
 import br.senai.sc.produto_exercicio.modelo.Produto;
 
 public class MainActivity extends AppCompatActivity {
-
-    private final int REQUEST_CODE_NOVOPRODUTO = 1;
-    private final int RESULT_CODE_NOVOPRODUTO = 10;
-    private final int REQUEST_CODE_EDITARPRODUTO = 2;
-    private final int REQUEST_CODE_PRODUTOEDITADO = 11;
 
     private ListView listViewProdutos;
     private ArrayAdapter<Produto> adapterProdutos;
@@ -38,12 +34,16 @@ public class MainActivity extends AppCompatActivity {
         listViewProdutos = findViewById(R.id.listView_produtos);
         ArrayList<Produto> produtos = new ArrayList<Produto>();
 
-        adapterProdutos = new ArrayAdapter<Produto>(MainActivity.this, android.R.layout.simple_list_item_1, produtos);
-
-        listViewProdutos.setAdapter(adapterProdutos);
-
         definirOnClickListenerListView();
         definirLongClickListenerListView();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        ProdutoDAO produtoDAO = new ProdutoDAO(getBaseContext());
+        adapterProdutos = new ArrayAdapter<Produto>(MainActivity.this, android.R.layout.simple_list_item_1, produtoDAO.listar());
+        listViewProdutos.setAdapter(adapterProdutos);
     }
 
     private void definirOnClickListenerListView() {
@@ -53,15 +53,14 @@ public class MainActivity extends AppCompatActivity {
                Produto produtoClicado = adapterProdutos.getItem(position);
                Intent intent = new Intent(MainActivity.this, CadastroProdutoActivity.class);
                intent.putExtra("produtoEdicao", produtoClicado);
-               startActivityForResult(intent, REQUEST_CODE_EDITARPRODUTO );
+               startActivity(intent);
             }
         });
     }
 
-
     public void onClickNovoProduto(View v) {
         Intent intent = new Intent(MainActivity.this, CadastroProdutoActivity.class);
-        startActivityForResult(intent, REQUEST_CODE_NOVOPRODUTO);
+        startActivity(intent);
     }
 
     private void definirLongClickListenerListView() {
@@ -69,6 +68,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, final int position, long id) {
                 final Produto produtoLongClick = adapterProdutos.getItem(position);
+                final ProdutoDAO produtoDAO = new ProdutoDAO(getBaseContext());
+                
                 new AlertDialog.Builder(MainActivity.this).setIcon(android.R.drawable.ic_delete)
                         .setTitle("Are you sure?")
                         .setMessage("Do you want to delete this item?")
@@ -77,6 +78,7 @@ public class MainActivity extends AppCompatActivity {
                             public void onClick(DialogInterface dialog, int which) {
                                 adapterProdutos.remove(produtoLongClick);
                                 adapterProdutos.notifyDataSetChanged();
+                                produtoDAO.deleteItem(produtoLongClick);
                             }
                         })
                         .setNegativeButton("No", null)
@@ -87,23 +89,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        if(requestCode == REQUEST_CODE_NOVOPRODUTO && resultCode == RESULT_CODE_NOVOPRODUTO) {
-            Produto produto = (Produto) data.getExtras().getSerializable("novoProduto");
-            produto.setId(++id);
-            this.adapterProdutos.add(produto);
-        } else if (requestCode == REQUEST_CODE_EDITARPRODUTO && resultCode == REQUEST_CODE_PRODUTOEDITADO) {
-            Produto produtoEditado = (Produto) data.getExtras().getSerializable("produtoEditado");
-            for(int i =0; i <adapterProdutos.getCount(); i++){
-                Produto produto = adapterProdutos.getItem(i);
-                if(produto.getId() == produtoEditado.getId()){
-                    adapterProdutos.remove(produto);
-                    adapterProdutos.insert(produtoEditado, i);
-                    break;
-                }
-            }
-        }
-        super.onActivityResult(requestCode, resultCode, data);
-    }
+
+
+
 }
